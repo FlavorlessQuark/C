@@ -1,2 +1,3 @@
 # C
-C is my favorite letter
+
+Note to self: the use of generic actually generates assembly code for all of the functions it calls...
