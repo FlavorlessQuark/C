@@ -27,6 +27,10 @@
 
 /////------------ Structs ------------\\\\\
 
+int		_i;
+void	*_tmp;
+
+
 //Dynamic array. Only problem is that we lose the type of data
 //Not sure if that is recoverable
 typedef struct
@@ -53,9 +57,12 @@ typedef struct	vect
 	int y;
 }			_V2;
 
-_HIDDEN_ _i;
-_HIDDEN_ _tmpi;
-_HIDDEN_ void *_tmptr;
+// typedef struct s_iterator
+// {
+// 	size_t size;
+
+
+// };
 
 /////------------ Utilities functions------------\\\\\
 
@@ -118,8 +125,8 @@ _HIDDEN_ void _defp_	(void *ptr, size_t len)	{_DEBUG_("PRINTING WITH UNDEFINED T
 //First draft, simple version, might add more functionality but worried about line count..
 // May add :
 // Copy if arrays are same
-// Add based on condition <- although that would be fairly hard to do and not efficient because it would be one convert function call per elemnt
-// For now I will assume that func_obj is an array... But this will need to be updated because I will ineviatbly want to make an array out of a list
+// Add based on condition <- although that would be fairly hard to do and not efficient because it would be one convert function call per elemnt <- Not necessarily. See : NOTES
+// For now I will assume that func_obj is an array... But this will need to be updated because I will ineviatbly want to make an array out of a list <- fixed
 // It might be better to use another defin for this, it would be unnecessary to do all the required checks and magic when I only want to allocate an array
 
 #define _ARRAY_ALLOC(array, size)\
@@ -130,10 +137,15 @@ _HIDDEN_ void _defp_	(void *ptr, size_t len)	{_DEBUG_("PRINTING WITH UNDEFINED T
 
 # define _ARRAY(array, size, convert_func, condition, fetch_obj)										\
 {\																			\
-	if ((array) != (fetch_obj))															\
-		_ARRAY_ALLOC(array, size);\
 	if (!__builtin_types_compatible_p(typeof(array), typeof(fetch_obj)))\
-		_DEBUG_("SAME");\
+		_DEBUG_("Could not build array | (array and fetch_obj are of same type)");\
+	if ((array) != (fetch_obj)){															\
+		_ARRAY_ALLOC(array, size);\
+	_tmp = convert_func(size, fetch_obj);\
+	for (size_t _i = 0, _n = 0; _i < 0; i++)\
+		if (_tmp[_i] condition)\
+			{array[_n] = tmp[_i]; _n++;}}\
+	else {_DEBUG_("Could not build array | (array and fetch_obj are the same variable)")}\
 }																						\
 
 // # define _2D_ARRAY(array, dimension_number, dimensions)

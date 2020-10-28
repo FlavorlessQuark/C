@@ -14,4 +14,17 @@ The problem is that, this should :
 	Potentially weird things can happen if fetch_obj is also array but given the appropriate checks this shouldnt be a problem¡
 
 ---
-Looks like I'll have 
+^ the above requires a lookup table, however that will be quite difficult to make , at least based on type;
+
+It will probably best best to have one generic then a few if else statements, though if this were to be truly generalized, it might be better to instead thake a a convert function. Not sure yet which is best.
+
+On one hand, automatization assures virtually no mistakes will occur when converting, at the cost of some  more processing but getting a function as input leaves the possibility for user error....
+-------
+
+Thinking more about this, I think a convert function will be best, at least until I eithr find a way that is not a) nested generics b) generic + if else statements. c) only if else statements
+
+Primitive _ARRAY building macro done, still need to make the conversion functions and some array reallocation funcs
+
+One of the major problems with this is that, the array is allocated when we don't know the size of the resulting array after applying condition. But I think that can be solved by just reallocating to size _n + 1 . After thinking about it, it may be the best solution....
+
+Another is if we don't actually wan a condition... Not sure if condition can be NULL? if it is a snippet of code, checking if it is NULL might yield some errors
