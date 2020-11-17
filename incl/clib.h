@@ -30,43 +30,135 @@
 int		_i;
 void	*_tmp;
 
-
-//Dynamic array. Only problem is that we lose the type of data
-//Not sure if that is recoverable
 typedef struct
 {
 	size_t	size;
 	void	*data;
-}			_Array;
+}			C_Array;
 
 typedef struct	s_list
 {
 	struct s_list *next;
 	void *data;
-}				_Node;
+}				C_Node;
 
 typedef struct	data
 {
-	size_t filesize;
-	char *content;
-}				_File;
+	size_t		filesize;
+	char		*content;
+}				C_File;
 
 typedef struct	vect
 {
-	int x;
-	int y;
-}			_V2;
+	int 		x;
+	int 		y;
+}				C_V2;
 
-// typedef struct s_iterator
-// {
-// 	size_t size;
+typedef struct s_tree_node
+{
+	int offspring;
 
-
-// };
+	char *content;
+	struct s_tree_node *child;
+}				_C_Tree;
 
 /////------------ Utilities functions------------\\\\\
 
 // ADD count numbers for : list, char *;
+
+char **array_rm(char **arr, int index, int size)
+{
+	char **result;
+	int i;
+	int n;
+
+	i = 0;
+	n = 0;
+	result = malloc((size - 1) * sizeof(char *));
+	while (i < size)
+	{
+		if (i != index)
+		{
+			result[n] = arr[i];
+			n++;
+		}
+		i++;
+	}
+	return result;
+}
+
+_C_Tree make_tree(int num, char **arr, int size)
+{
+	_C_Tree self;
+	int i;
+
+	self.offspring = num;
+	self.child = calloc(num , sizeof(_C_Tree));
+
+	i = 0;
+	while (i < num)
+	{
+		self.child[i] = make_tree(num - 1, array_rm(arr, i, size), size - 1);
+		self.child[i].content = strdup(arr[i]);
+		i++;
+	}
+	return self;
+}
+
+void array_addone(int *arr, int size)
+{
+	int i;
+
+	i = size - 1;
+	arr[i]++;
+	while (i >= 0)
+	{
+		if (arr[i] >= size - i)
+		{
+			arr[i - 1]++;
+			arr[i] = 0;
+		}
+		i--;
+	}
+}
+
+void _tree_step(_C_Tree start, int position, int *array, char **print)
+{
+	position++;
+
+	if (start.offspring <= 0)
+		return ;
+	print[position] = start.child[array[position]].content;
+	tree_step(start.child[array[position]], position, array, print);
+}
+
+int check_end(int size, int *arr)
+{
+	int i;
+
+	i = 0;
+	while (i < size) {if (arr[i] != size - (i + 1)){return 1;}i++;}
+	return -1;
+}
+
+int next_perm(int n, char **s)
+{
+	static _C_Tree 	tree;
+	static int 			*control;
+	static int 			*dup_control;
+	static int 			end;
+	static int 			i;
+
+	if (tree.content == NULL)
+	{
+		tree = make_tree(n, s, n);
+		control = calloc(n, sizeof(int));
+	}
+	tree_step(tree, -1, control, s);
+	array_addone(control, n);
+	if (end == -1){return 0;}
+	else{end = check_end(n, control);return 1;}
+}
 
 static inline void swap (char *a, char *b)
 {
@@ -77,6 +169,8 @@ static inline void swap (char *a, char *b)
 	*b = tmp;
 }
 
+long factorial(int x) {long result; result = 1; while (x > 0){ result *= x; x--; } return result;}
+
 // Gotta test this vs just doing strspn. Strspn might be faster for "smaller" numbers. But math is faster than string ops at least in theory...
 static inline int	numlen(int num){int len; if (num == 0) {return 1;}len = log10(abs(num)) + 1; return (num < 0) ? (len + 1) : (len);}
 
@@ -86,8 +180,6 @@ static inline int	extract_num(char *str, int *number) {int spn = strcspn(str, NU
 static inline char	*join(char *s1, char *s2){ size_t len = strlen(s1) + strlen(s2) + 1; char* str; str = calloc(len, 1); snprintf(str, len,  "%s%s", s1,s2);return str;}
 
 static inline int	count_occurence(char *str, char *c){ int count = 0; int len = strlen(c); while ((str = strstr(str, c))) {count++; str += len;} return count;}
-
-# define _DEBUG_(msg, ...) fprintf(stderr, "\033[1;91m[LOG](%s:%d) >>\033[0m "msg"\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 /////------------ Macros ------------\\\\\
 
@@ -100,34 +192,10 @@ static inline int	count_occurence(char *str, char *c){ int count = 0; int len = 
 	({__typeof__ (x) _x = (x);\
 	__typeof__ (y) _y = (y);\
 	_x > _y ? _y : _x;})
-
-_HIDDEN_ void _intp_	(int *ptr, size_t len)	{size_t i; i = 0;while (i < len) {printf("%d\n", ptr[i]); i++;};}
-_HIDDEN_ void _boolp_(bool *ptr, size_t len)	{size_t i; i = 0;while (i < len) {ptr[i] == true ? printf("True\n") : printf("False\n"); i++;}}
-_HIDDEN_ void _vectp_(_V2 **ptr, size_t len)	{size_t i; i = 0; while (i < len) {printf("(%d,%d)\n", ptr[i]->x, ptr[i]->y); i++;}}
-_HIDDEN_ void _nodep_(_Node *ptr, size_t len){while (ptr != NULL){printf("%s\n", ptr->data);ptr = ptr->next;}}
-_HIDDEN_ void _defp_	(void *ptr, size_t len)	{_DEBUG_("PRINTING WITH UNDEFINED TYPE (likely char *, use printf you moron)");}
-
- // Since _Node can contain pretty much anything, need to make a print functions that reflects that
-# define _PRINT_1D(array, size) _Generic((array),\
-	int		*: _intp_  ((int  *) array, size),\
-	bool	*: _boolp_ ((bool *) array, size),\
-	_Node	*: _nodep_ ((_Node *)array, size),\
-	_V2		**:_vectp_ ((_V2 **) array, size),\
-	default	 : _defp_  (array, size))
-
-
-
 // # define _MAP(to_object, from_object, condition, operation)
 // {
 
 // }
-
-//First draft, simple version, might add more functionality but worried about line count..
-// May add :
-// Copy if arrays are same
-// Add based on condition <- although that would be fairly hard to do and not efficient because it would be one convert function call per elemnt <- Not necessarily. See : NOTES
-// For now I will assume that func_obj is an array... But this will need to be updated because I will ineviatbly want to make an array out of a list <- fixed
-// It might be better to use another defin for this, it would be unnecessary to do all the required checks and magic when I only want to allocate an array
 
 #define _ARRAY_ALLOC(array, size)\
 {\
@@ -135,18 +203,18 @@ _HIDDEN_ void _defp_	(void *ptr, size_t len)	{_DEBUG_("PRINTING WITH UNDEFINED T
 			_DEBUG_("Couldn't allocate array of size %d in _ARRAY", size);	\
 }\
 
-# define _ARRAY(array, size, convert_func, condition, fetch_obj)										\
-{\																			\
-	if (!__builtin_types_compatible_p(typeof(array), typeof(fetch_obj)))\
-		_DEBUG_("Could not build array | (array and fetch_obj are of same type)");\
+# define _ARRAY(array, size, convert_func, condition, fetch_obj)							\
+{\																							\
+	if (!__builtin_types_compatible_p(typeof(array), typeof(fetch_obj)))					\
+		_DEBUG_("Could not build array | (array and fetch_obj are of same type)");			\
 	if ((array) != (fetch_obj)){															\
-		_ARRAY_ALLOC(array, size);\
-	_tmp = convert_func(size, fetch_obj);\
-	for (size_t _i = 0, _n = 0; _i < 0; i++)\
-		if (_tmp[_i] condition)\
-			{array[_n] = tmp[_i]; _n++;}}\
-	else {_DEBUG_("Could not build array | (array and fetch_obj are the same variable)")}\
-}																						\
+		_ARRAY_ALLOC(array, size);															\
+	_tmp = convert_func(size, fetch_obj);													\
+	for (size_t _i = 0, _n = 0; _i < 0; i++)												\
+		if (_tmp[_i] condition)																\
+			{array[_n] = tmp[_i]; _n++;}}													\
+	else {_DEBUG_("Could not build array | (array and fetch_obj are the same variable)")}	\
+}																							\
 
 // # define _2D_ARRAY(array, dimension_number, dimensions)
 // {
@@ -158,9 +226,12 @@ _HIDDEN_ void _defp_	(void *ptr, size_t len)	{_DEBUG_("PRINTING WITH UNDEFINED T
 /////------------ Sorting algorithms ------------\\\\\
 
 //Merge two sorted lists.
-_HIDDEN_ static _Node		*_lstSort_(_Node *h1, _Node *h2)
+
+
+
+_HIDDEN_ static C_Node		*_lstSort_(C_Node *h1, C_Node *h2)
 {
-	_Node head, *list;
+	C_Node head, *list;
 
 	list = &head;
 	list->next = NULL;
@@ -176,9 +247,9 @@ _HIDDEN_ static _Node		*_lstSort_(_Node *h1, _Node *h2)
 }
 
 //List Merge Sort
-static inline _Node *lstMsort(_Node *head, int len)
+static inline C_Node *lstMsort(C_Node *head, int len)
 {
-	_Node	*h1, *h2;
+	C_Node	*h1, *h2;
 	int		i;
 
 	h1 = head;
@@ -202,11 +273,11 @@ static inline _Node *lstMsort(_Node *head, int len)
 //List search
 
 //Returns a new node;
-static inline	_Node	*new_node() {return (_Node *)calloc(1 , sizeof(_Node));}
+static inline	C_Node	*newC_node() {return (C_Node *)calloc(1 , sizeof(C_Node));}
 
-static inline	_Node	*get_last(_Node *head) {while(head->next != NULL)head = head->next;return head;}
+static inline	C_Node	*get_last(C_Node *head) {while(head->next != NULL)head = head->next;return head;}
 
-static	_Node			*search_list(_Node *list, char *str)
+static			C_Node	*search_list(C_Node *list, char *str)
 {
 	while (list != NULL)
 	{
@@ -242,10 +313,10 @@ static	_Node			*search_list(_Node *list, char *str)
 /////------------ Parsing functions ------------\\\\\
 
 // Returns a list of words from str, separated by delimiters
-static _Node		*fetch_words(char  *str, char *delimeters, size_t *len)
+static C_Node		*fetch_words(char  *str, char *delimeters, size_t *len)
 {
-	_Node *list;
-	_Node *head;
+	C_Node *list;
+	C_Node *head;
 
 	head = new_node();
 	list = head;
@@ -269,11 +340,11 @@ static _Node		*fetch_words(char  *str, char *delimeters, size_t *len)
 	return head;
 }
 
-// Reads file into _File struct.
-static _File		fetch_file(char *filename, int trim)
+// Reads file into C_File struct.
+static C_File		fetch_file(char *filename, int trim)
 {
 	FILE	*file;
-	_File	data;
+	C_File	data;
 
 	file = fopen(filename, "r");
 	fseek(file, 0L , SEEK_END);
@@ -288,10 +359,10 @@ static _File		fetch_file(char *filename, int trim)
 }
 
 // Reads input file into a list of words. Words are sperated by *delimeter
-static _Node		*fetch_by_wordList(char *filename, char *delimeters, int trim, size_t *len)
+static C_Node		*fetch_by_wordList(char *filename, char *delimeters, int trim, size_t *len)
 {
-	_File	data;
-	_Node	*list;
+	C_File	data;
+	C_Node	*list;
 	char	*str;
 
 	*len = 0;
@@ -300,10 +371,10 @@ static _Node		*fetch_by_wordList(char *filename, char *delimeters, int trim, siz
 	return list;
 }
 
-static _Node		*fetch_by_wordArr(char *filename, char *delimeters, int trim, size_t *len)
+static C_Node		*fetch_by_wordArr(char *filename, char *delimeters, int trim, size_t *len)
 {
-	_File	data;
-	_Node	*list;
+	C_File	data;
+	C_Node	*list;
 	char	*str;
 
 	*len = 0;
